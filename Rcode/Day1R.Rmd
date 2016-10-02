@@ -12,7 +12,7 @@ tidy.opts=list(blank=FALSE, width.cutoff=60)
 
 ## Week 1: Intro to data.frame
 
-The first time you run R, you will have to install packages.  You install them by running the following commands:
+The first time you run R, you will have to install packages.  You install them by running the following commands, which are a bunch of fun!:
 
 ```{r package_installation, eval=FALSE}
 install.packages("dplyr", repos="http://cran.rstudio.com/")
