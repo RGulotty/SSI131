@@ -1,0 +1,335 @@
+---
+title: "RCourse"
+author: "Robert Gulotty"
+date: "9/30/2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+tidy.opts=list(blank=FALSE, width.cutoff=60)
+```
+
+## Week 1: Intro to data.frame
+
+The first time you run R, you will have to install packages.  You install them by running the following commands:
+
+```{r package_installation, eval=FALSE}
+install.packages("dplyr", repos="http://cran.rstudio.com/")
+install.packages("ggplot2", repos="http://cran.rstudio.com/")
+install.packages("nycflights13", repos="http://cran.rstudio.com/")
+```
+
+After installation, you can load the packages with the library command.
+```{r packages, results="hide"}
+library(dplyr, warn.conflicts = F)
+library(ggplot2)
+library(nycflights13)
+```
+
+### Data Description
+
+We begin by identifying the `dimensions' of the flights dataset, which is loaded into R when you load the nycflights library
+```{r dimensions}
+dim(flights)
+```
+ What do you think these numbers refer to?  A little heuristic, whenever dealing with a matrix or dataframe is that the order is Rows and Columns, or Rum and Coke, Roman Catholic.  R x C.
+
+ The most common command that I use is a command that glimpses the top of a dataset, called head()
+```{r top_rows}
+head(flights)
+
+# head(flights, n=8)
+
+```
+
+
+Note that you get the first 6 rows by default.  You can change this by adding to the head command an additional parameter "n".
+
+
+
+### Dplyr Commands
+
+The first command to learn in the dplyr framework is filter.  Filter grabs a subset of rows that satisfy logical conditions listed after the data frame.  Here, we are grabbing the flights where on the day is equal to 1 and the month is equal to 1, which is to say all the flights on new years day of 2013.
+
+```{r New_years}
+filter(flights, month == 1, day == 1)
+```
+
+ We can also give more complicated commands, such as with the logical `or' command, which is produced with a '|' pipe character.  Here we get all the flights from New York to Chicago.
+```{r New_years_Chicago}
+filter(flights, month == 1 , day == 1, dest=="ORD" | dest== "MDW" )
+```
+
+ Now you try:  
+
+How many flights traveled to Des Moines International from New York in August?  Remove the # to make it run.
+
+```{r New_years_Iowa}
+# dim(filter( flights, month ==  ____ ,  ____ == "DSM"))
+```
+
+___Q.  When did a flight go to Lexington, KY (LEX)?___
+
+
+### Base R version
+
+ In "base" or unmodified R, all this would be more cumbersome, with the following command used to grab new years flights.
+
+```{r New_years2, results="hide"}
+flights[flights[ , "month" ] == 1 & flights[ , "day" ] == 1, ]
+```
+
+ Althought we will use the dplyr commands, it is useful to learn abit about the R syntax here.  Lets try to break up this cumbersome command into its parts.
+
+The first thing to do is to start on the outside and work your way in.  The outermost command is the square bracket [].
+
+ flights[] is just the whole flights dataset, and inside the square brackets are a comma.  What do you think we get when we type flights[ 4 , 4 ] ?
+
+ Were you right?  Try changing the numbers.  
+
+ As you can see, we have a way to get elements out of the dataframe.  What do you think we get when we write, 
+ - flights[ , "dest" ]
+or 
+
+ - flights[ , "day" ]
+
+ Remember, rows and columns.
+
+ Now lets say we want the 4th entry under month, we could just write
+
+ - flights[4 , "month" ]
+
+ All of this indexing assumes we know in advance what index we are looking for.  In practical terms though, we want to be able to search through the data to find specific entries.
+
+ For the next couple exercises, lets work with a subset of the data, lets examine flight patterns from New York into DC on January 18-21.  Dont worry about the commands, we will explian each one.  Whenever you see a `<-' this means we are creating a new variable.  filter() is the command from before, c( ) makes a list, and A %in% B reports TRUE for each element of A present somewhere in B.
+
+```{r New_years_DC}
+DCflights <- filter(flights, month==1, day %in% 18:21, dest %in% c("IAD", "DCA") )
+```
+
+Within the DC flights, suppose we want to get the longest flights.  First we need to grab the air time variable, which we could do using the [] , DCflights[, "air_time"]
+
+As a short cut, R allows us to use the $ operator to get named variables from a dataset.  DCflights$air_time
+
+Now we want the max of this list.  Note we need to put in the list, and a seperate command for how to deal with missing data indicated by NA.
+```{r Max_Airtime}
+max(DCflights$air_time, na.rm=T)
+```
+
+
+It seems that the max is 61.  Lets find out where that is true.
+
+```{r is_equal_to_Max_Airtime}
+DCflights$air_time==61
+```
+
+
+What we really want is the 'index' of the flights that are 61 minutes long.  For that we can use the which() command
+
+
+```{r which_is_equal_to_Max_Airtime}
+which(DCflights$air_time == 61)
+```
+
+
+
+This gave us the index of the dataset where this is true, here the 92nd row.  Finally, we can use this information in five ways to get that row of the dataset:
+
+```{r ways_to_get_row_92}
+DCflights[92, ]
+DCflights[which(DCflights$air_time == 61), ]
+DCflights[DCflights$air_time == 61, ]
+DCflights[DCflights$air_time == max(DCflights$air_time, na.rm=T), ]
+
+filter(DCflights, air_time==max(air_time, na.rm=T))
+```
+Note the second and third techniques also return the NA rows.  This is because the == returns a NA, and putting in a NA in an index in R returns an NA.
+
+
+##An aside on indexing
+One note on indexing, it is very powerful.  Take the following list, for example.
+
+
+
+```{r Indexing_trick}
+lengths <- c("short", "medium", "long")
+
+lengths[c(1,1,1,1,1,1,2,2,2,3,3,3,1,1,2,3)]
+```
+
+
+# Christmas Eve Analysis
+Now, I am not sure if you are have ever taken a flight on Christmas Eve, but the pilots often fly by one another with their lights set up in a Rudolf leading the raindeer, with a red light up front, and they make an announcement for the children.  Lets see if we can discover something about those flights.
+
+
+
+```{r Christmas}
+
+filter(flights, month==12, day ==24 )
+
+```
+
+Lets find the flights at night, lets say after 7:00 PM, or 1900
+
+```{r ChristmasEve}
+
+ChristmasEveFlights <- filter(flights, month==12, day ==24,  dep_time > 1900 )
+
+```
+
+
+Now lets see who was in the air long enough to see the raindeer.  To do so, we will add a new variable, flighttime, by subtracting deptime from arrtime.  We will add that variable using the mutate() command.
+
+```{r ChristmasFlightTime}
+
+ChristmasEveFlights <- mutate(ChristmasEveFlights, flighttime = arr_time - dep_time)
+
+```
+
+##Plotting Flights
+Lets use a simple plot to visualize these flights.  Remember you can learn about all commands using ?qplot  
+
+```{r ChristmasPlot1,fig.height=4, fig.width=4}
+
+qplot(x = dep_time, y = flighttime, data=ChristmasEveFlights)
+
+```
+
+
+ It seems like something is wrong.  Some flights are spilling over into the next day.  Lets return to the Christmas Eve Flights equation.  What do we need to do?  We want to add 2400 hours when the flighttime is negative.  We can do that with an ifelse command.  ifelse commands take a logical statment and return the second element if it is true and the third element if it is false.  
+
+
+```{r ifelsecommand}
+
+ifelse(2==3, "Is correct", "Is not correct")
+
+```
+
+```{r ChristmasPlot2,fig.height=4, fig.width=4}
+
+ChristmasEveFlights <- mutate(ChristmasEveFlights, flighttime = arr_time - dep_time, flighttime24 = ifelse( flighttime < 0, flighttime+2400, flighttime))
+
+qplot(dep_time, flighttime24, data=ChristmasEveFlights)
+
+```
+
+
+
+##Summarizing the Data
+ Is this an atypical distribution?  Lets get some simple statistics from this distribution.
+
+
+```{r summaryFlights}
+
+summary(ChristmasEveFlights)
+
+```
+
+
+The average flight time on Christmas Eve is 256.  Lets do the same calculation for the whole dataset.
+
+
+
+```{r summaryFlights2}
+
+
+flights <- mutate(flights,  flighttime = arr_time - dep_time, flighttime24 = ifelse( flighttime < 0, flighttime+2400, flighttime))
+
+summary(flights)
+
+```
+
+
+
+
+The average for the whole population is 231.  Is this the right way to summarise this data? Lets add a variable to the flights data that indicates that the flight is a Christmas eve flight, so we don't have to keep messing with two datasets.
+
+```{r flightcomparison}
+
+flightscomparison <- mutate(flights, ChristmasEve = ifelse( month==12 & day==24& dep_time>1900, "Christmas Eve", "Un-Christmas Eve"))
+
+
+```
+
+Let further limit the analysis to evenings evenings, we don't want our analysis messed up by morning flights.
+
+
+
+```{r flightcomparisonnights}
+
+flightscomparison <- filter(flightscomparison, dep_time>1900)
+
+head(flightscomparison)
+
+```
+
+
+
+## Advanced Plotting
+ Now we are going to use an advanced plotting technique, from ggplot2, which plots two "densities".  We will learn more about this later, but the basic parts are a ggplot() command, an aesthetic command aes(), and a geom command, here geom_density.  The alpha changes the opacity of the plots.
+
+
+
+
+```{r flightcomparisonGGplot1}
+
+ggplot(flightscomparison, aes(flighttime24, group = ChristmasEve, fill= ChristmasEve ))+geom_density(alpha=.5)
+
+```
+
+This is a bit hard to read, so lets cut out all flights more than 6 hours, note that we are putting the filter command right into the ggplot command.
+
+```{r flightcomparisonGGplot2}
+
+ggplot(filter(flightscomparison, flighttime24<600), aes(flighttime24, group = ChristmasEve, fill= ChristmasEve ))+geom_density(alpha=.5)
+```
+
+
+
+For your enjoyment, I am going to add some features to the plot above, to make it look nice.
+
+```{r flightcomparisonGGplot3}
+
+ggplot(filter(flightscomparison, flighttime24<600), aes(flighttime24, group = ChristmasEve, fill= ChristmasEve ))+
+geom_density(alpha=.5)+
+theme_bw()+
+xlab("Flight Length")+
+ggtitle("Distribution of Nighttime Flight Lengths in 2013")+
+guides(fill = guide_legend(title = "Holiday"))+theme(legend.position="bottom")
+
+```
+
+
+
+
+## ASSIGNMENT:
+
+ Make your favorite plot of the data, and save it using the following commands, with your file location in the pdf command.  You will have to replace this path with your preferred path. Turn it in with one paragraph explanation for what you find for full credit.  
+
+
+
+```{r flightcomparisonGGplotout, include=FALSE}
+
+pdf(file= "~/Documents/PrettyPlot.pdf", width = 9)
+
+ggplot(filter(flightscomparison, flighttime24<600), aes(flighttime24, group = ChristmasEve, fill= ChristmasEve ))+
+geom_density(alpha=.5)+
+theme_bw()+
+xlab("Flight Length")+
+ggtitle("Distribution of Nighttime Flight Lengths in 2013")+
+guides(fill = guide_legend(title = "Holiday"))+theme(legend.position="bottom")
+
+dev.off()
+```
+
+
+
+Lets save this data that we made to do statistical inference later in the quarter.  Again, put the path in a folder on your computer.
+```{r writeout, eval=FALSE}
+
+write.csv(flightscomparison, "~/Google Drive/ChicagoSyllabi/SSI131/Rcode/flightcomparison.csv")
+
+
+```
+
